@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as React from 'react';
-
+import {FileUpdateMessage, FileChangeMessage, replaceRange} from './receiver'
 
 var app = express();
 var http = new Server(app);
@@ -21,6 +21,12 @@ app.get('/', function (req, res) {
         <SideBar files={Object.keys(files)}/>
     ));
 });
+function jsFriendlyJSONStringify (s: any) {
+    return JSON.stringify(s).
+        replace(/\u2028/g, '\\u2028').
+        replace(/\u2029/g, '\\u2029').
+        replace(/</g, '\\u003c');
+}
 
 app.get('/file/:filename', function (req, res) {
     const filename = req.params.filename;
@@ -36,7 +42,7 @@ app.get('/file/:filename', function (req, res) {
                         initial: files[filename]
                     };
         res.send(data.toString().replace("<div id='react'></div>", 
-                                        `<div id='react'>${file}</div><script>var state=${JSON.stringify(state)}</script>`));
+                                        `<div id='react'>${file}</div><script>var state=${jsFriendlyJSONStringify(state)}</script>`));
     })
 });
 
@@ -44,16 +50,17 @@ app.use('/public', express.static('public'));
 app.use('/node_modules', express.static('node_modules'));
 
 
-interface FileUpdateMessage{
-    file: string,
-    text: string
-}
 
 io.on('connection', function(socket){
     socket.on('file update', function(msg: FileUpdateMessage){
-        files[msg.file] = {content: msg.text, type: ''};
+        files[msg.file] = msg;
         io.emit('file updated', msg);
         console.log(msg.file);
+    });
+    socket.on('file change', function(msg: FileChangeMessage){
+        files[msg.file].content = replaceRange(files[msg.file].content, msg.newContent, msg.start, msg.length);
+        io.emit('file changed', msg);
+        console.log('file change', msg)
     });
 });
 
