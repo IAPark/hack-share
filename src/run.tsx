@@ -16,10 +16,10 @@ var io = socket(http);
 
 var files: {[filename: string]: {content: string, type: string}} = {}
 
+const index = path.join(__dirname, '../index.html');
+
 app.get('/', function (req, res) {
-    res.send(ReactDOMServer.renderToStaticMarkup(
-        <SideBar files={Object.keys(files)}/>
-    ));
+    res.sendFile(index);
 });
 function jsFriendlyJSONStringify (s: any) {
     return JSON.stringify(s).
@@ -29,21 +29,19 @@ function jsFriendlyJSONStringify (s: any) {
 }
 
 app.get('/file/:filename', function (req, res) {
+    res.sendFile(index);
+});
+
+app.get('/api/file/:filename', function (req, res) {
     const filename = req.params.filename;
     if (!files[filename]) {
         res.sendStatus(404);
     }
-    fs.readFile(path.join(__dirname, '../index.html'), (err, data) => {
-        if (err) throw err;
+    res.json(files[filename])
+});
 
-        var file = ReactDOMServer.renderToString(<FileView file={filename} initial={files[filename]}/>);
-        var state = {
-                        file: filename, 
-                        initial: files[filename]
-                    };
-        res.send(data.toString().replace("<div id='react'></div>", 
-                                        `<div id='react'>${file}</div><script>var state=${jsFriendlyJSONStringify(state)}</script>`));
-    })
+app.get('/api/files/', function (req, res) {
+    res.json({files: Object.keys(files)})
 });
 
 app.use('/public', express.static('public'));
@@ -55,6 +53,7 @@ io.on('connection', function(socket){
     socket.on('file update', function(msg: FileUpdateMessage){
         files[msg.file] = msg;
         io.emit('file updated', msg);
+        io.emit('files changed', {files: Object.keys(files)})
         console.log(msg.file);
     });
     socket.on('file change', function(msg: FileChangeMessage){

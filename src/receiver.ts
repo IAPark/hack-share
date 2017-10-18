@@ -1,5 +1,7 @@
 
 export interface FileUpdateMessage {file: string, content: string, type: string}
+export interface FileListChange {files: string[]}
+
 export interface FileChangeMessage {file: string, newContent: string, start: number, length: number}
 
 export function replaceRange(original: string, newContent: string, start: number, length: number) {
