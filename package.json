@@ -4,7 +4,8 @@
   "description": "a server to display a live coding project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./dist/run.js"
   },
   "author": "",
   "license": "GPL-3.0",
